@@ -11,6 +11,7 @@ import type {
   TransactionServiceRow,
   ProductRow,
 } from "@/lib/types/app";
+import { toNumber } from "@/lib/utils/currency";
 import { getServiceEmployeeSplits, getServiceTotalCommission } from "@/lib/utils/transaction-services";
 
 import { attachTransactionServiceEmployees } from "./transaction-service-employees";
@@ -152,6 +153,9 @@ export async function getTransactions({
         product_count: transaction.transaction_products?.length ?? 0,
         total_commission: (transaction.transaction_services ?? []).reduce(
           (sum, item) => sum + getServiceTotalCommission(item),
+          0,
+        ) + (transaction.transaction_products ?? []).reduce(
+          (sum, item) => sum + toNumber(item.commission_amount),
           0,
         ),
       }),

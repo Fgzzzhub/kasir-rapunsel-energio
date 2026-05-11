@@ -127,13 +127,18 @@ export type EmployeeMutationPayload = {
 };
 
 export type TransactionServiceInput = {
-  employeeIds: string[];
+  employeeAssignments: Array<{
+    customCommissionRate?: number | null;
+    id: string;
+  }>;
   serviceId: string;
   finalPrice?: number | null;
   priceAdjustmentReason?: string;
 };
 
 export type TransactionProductInput = {
+  customCommissionAmount?: number | null;
+  employeeId: string;
   productId: string;
   qty: number;
 };
@@ -192,6 +197,10 @@ export type TransactionListItem = TransactionRow & {
       | "qty"
       | "price_snapshot"
       | "subtotal"
+      | "employee_id"
+      | "employee_name_snapshot"
+      | "commission_rate_snapshot"
+      | "commission_amount"
     >
   >;
 };
@@ -255,6 +264,7 @@ export type PayrollCommissionItem = {
   commissionAmount: number;
   commissionRate: number;
   customerName: string;
+  itemType?: "service" | "product";
   paymentMethod: PaymentMethod;
   price: number;
   splitPercentage?: number | null;

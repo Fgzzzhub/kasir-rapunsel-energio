@@ -36,6 +36,9 @@ export default async function TransactionDetailPage({
   const totalCommission = transaction.transaction_services.reduce(
     (sum, item) => sum + getServiceTotalCommission(item),
     0,
+  ) + (transaction.transaction_products ?? []).reduce(
+    (sum, item) => sum + toNumber(item.commission_amount),
+    0,
   );
   const totalServices = transaction.transaction_services.reduce(
     (sum, item) => sum + toNumber(item.price_snapshot),
@@ -260,6 +263,30 @@ export default async function TransactionDetailPage({
                     label: "Subtotal",
                     render: (item) => <RupiahFormatter value={item.subtotal} />,
                   },
+                  ...(session.profile.role === "owner"
+                    ? [
+                        {
+                          key: "employee_name_snapshot",
+                          label: "Penjual",
+                          render: (item: (typeof transaction.transaction_products)[number]) =>
+                            item.employee_name_snapshot ?? "-",
+                        },
+                        {
+                          key: "commission_rate_snapshot",
+                          label: "Rate komisi",
+                          render: (item: (typeof transaction.transaction_products)[number]) =>
+                            `${formatCommissionRate(toNumber(item.commission_rate_snapshot))}%`,
+                        },
+                        {
+                          align: "right" as const,
+                          key: "commission_amount",
+                          label: "Nilai komisi",
+                          render: (item: (typeof transaction.transaction_products)[number]) => (
+                            <RupiahFormatter value={item.commission_amount} />
+                          ),
+                        },
+                      ]
+                    : []),
                 ]}
                 emptyMessage="Tidak ada produk dalam transaksi ini."
                 rowKey={(item) => item.id}

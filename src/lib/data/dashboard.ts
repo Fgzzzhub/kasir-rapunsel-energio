@@ -186,6 +186,20 @@ export async function getDashboardMetrics({
     product.totalProducts += Number(item.qty ?? 0);
     product.totalRevenue += toNumber(item.subtotal);
     topProductsMap.set(item.product_id, product);
+
+    if (item.employee_id && item.employee_name_snapshot) {
+      const current = bestEmployeesMap.get(item.employee_id) ?? {
+        employeeName: item.employee_name_snapshot,
+        handledRevenue: 0,
+        handledServices: 0,
+        totalCommission: 0,
+      };
+
+      current.handledServices += Number(item.qty ?? 0);
+      current.handledRevenue += toNumber(item.subtotal);
+      current.totalCommission += toNumber(item.commission_amount);
+      bestEmployeesMap.set(item.employee_id, current);
+    }
   });
 
   monthlyTransactions.forEach((transaction) => {
@@ -222,7 +236,7 @@ export async function getDashboardMetrics({
   const monthCommission = monthlyCommission.reduce(
     (sum, item) => sum + getServiceTotalCommission(item),
     0,
-  );
+  ) + monthlyProducts.reduce((sum, item) => sum + toNumber(item.commission_amount), 0);
 
   return {
     bestEmployees: Array.from(bestEmployeesMap.values())

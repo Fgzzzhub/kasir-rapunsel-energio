@@ -6,6 +6,7 @@ import type {
   PayrollEmployeeSummary,
   PayrollReportData,
   SalaryAdjustmentRow,
+  TransactionProductRow,
   TransactionRow,
   TransactionServiceRow,
 } from "@/lib/types/app";
@@ -122,8 +123,20 @@ export async function getPayrollReport({
         .order("created_at", { ascending: false })
     : { data: [], error: null };
 
+  const { data: productRowsData, error: productRowsError } = transactionIds.length
+    ? await supabase
+        .from("transaction_products")
+        .select("*")
+        .in("transaction_id", transactionIds)
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
+
   if (serviceRowsError) {
     throw new Error(serviceRowsError.message);
+  }
+
+  if (productRowsError) {
+    throw new Error(productRowsError.message);
   }
 
   const serviceRows = (await attachTransactionServiceEmployees(
@@ -132,6 +145,7 @@ export async function getPayrollReport({
   )) as Array<
     ServiceWithEmployees & { service_name_snapshot: string; transaction_id: string }
   >;
+  const productRows = (productRowsData ?? []) as unknown as TransactionProductRow[];
   const transactionMap = new Map(transactions.map((transaction) => [transaction.id, transaction]));
   const businessMap = new Map(businesses.map((business) => [business.id, business]));
 
@@ -224,6 +238,37 @@ export async function getPayrollReport({
       summary.totalCommission += commissionItem.commissionAmount;
       summary.totalHandledServiceAmount += commissionItem.price;
     });
+  });
+
+  productRows.forEach((productRow) => {
+    if (!productRow.employee_id) {
+      return;
+    }
+
+    const transaction = transactionMap.get(productRow.transaction_id);
+    const summary = employeeMap.get(productRow.employee_id);
+
+    if (!transaction || !summary) {
+      return;
+    }
+
+    const commissionItem: PayrollCommissionItem = {
+      businessId: transaction.business_id,
+      businessName: transaction.business?.name ?? summary.businessName,
+      commissionAmount: toNumber(productRow.commission_amount),
+      commissionRate: toNumber(productRow.commission_rate_snapshot),
+      customerName: transaction.customer_name,
+      itemType: "product",
+      paymentMethod: transaction.payment_method as PayrollCommissionItem["paymentMethod"],
+      price: toNumber(productRow.subtotal),
+      serviceName: productRow.product_name_snapshot,
+      transactionCreatedAt: transaction.created_at,
+      transactionId: transaction.id,
+    };
+
+    summary.commissionItems.push(commissionItem);
+    summary.totalCommission += commissionItem.commissionAmount;
+    summary.totalHandledServiceAmount += commissionItem.price;
   });
 
   adjustments.forEach((adjustment) => {

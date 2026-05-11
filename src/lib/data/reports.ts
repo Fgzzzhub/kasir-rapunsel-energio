@@ -130,6 +130,44 @@ export async function getFinancialReport({
         topEmployeesMap.set(employeeKey, employeeRow);
       });
     });
+
+    transaction.transaction_products.forEach((productRow) => {
+      if (!productRow.employee_id || !productRow.employee_name_snapshot) {
+        return;
+      }
+
+      const commissionKey = `${businessIdKey}:${productRow.employee_id}`;
+      const commissionRow = commissionByEmployeeMap.get(commissionKey) ?? {
+        businessId: businessIdKey,
+        businessName: businessNameValue,
+        employeeId: productRow.employee_id,
+        employeeName: productRow.employee_name_snapshot,
+        handledRevenue: 0,
+        handledServices: 0,
+        totalCommission: 0,
+      };
+
+      commissionRow.handledRevenue += toNumber(productRow.subtotal);
+      commissionRow.handledServices += toNumber(productRow.qty);
+      commissionRow.totalCommission += toNumber(productRow.commission_amount);
+      commissionByEmployeeMap.set(commissionKey, commissionRow);
+
+      const employeeKey = `${businessIdKey}:${productRow.employee_id}`;
+      const employeeRow = topEmployeesMap.get(employeeKey) ?? {
+        businessId: businessIdKey,
+        businessName: businessNameValue,
+        employeeId: productRow.employee_id,
+        employeeName: productRow.employee_name_snapshot,
+        handledRevenue: 0,
+        handledServices: 0,
+        totalCommission: 0,
+      };
+
+      employeeRow.handledRevenue += toNumber(productRow.subtotal);
+      employeeRow.handledServices += toNumber(productRow.qty);
+      employeeRow.totalCommission += toNumber(productRow.commission_amount);
+      topEmployeesMap.set(employeeKey, employeeRow);
+    });
   });
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + toNumber(expense.amount), 0);

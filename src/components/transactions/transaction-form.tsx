@@ -122,13 +122,18 @@ export function TransactionForm({
 
     (watchedServices ?? []).forEach((item) => {
       const service = serviceMap.get(item?.serviceId ?? "");
-      const employeeIds = item?.employeeIds ?? [];
+      const employeeAssignments = item?.employeeAssignments ?? [];
+      const employeeIds = employeeAssignments.map(a => a.id);
       const defaultPrice = Number(service?.price ?? 0);
       const finalPrice = item?.finalPrice ?? defaultPrice;
       const splitBase = employeeIds.length ? finalPrice / employeeIds.length : 0;
-      const commissionAmount = employeeIds.reduce((sum, employeeId) => {
-        const employee = employeeMap.get(employeeId);
-        return sum + (splitBase * Number(employee?.commission_rate ?? 0)) / 100;
+      const commissionAmount = employeeAssignments.reduce((sum, assignment) => {
+        const employee = employeeMap.get(assignment.id);
+        const commissionRate =
+          assignment.customCommissionRate != null && assignment.customCommissionRate >= 0
+            ? assignment.customCommissionRate
+            : Number(employee?.commission_rate ?? 0);
+        return sum + (splitBase * commissionRate) / 100;
       }, 0);
 
       totalServices += finalPrice;
@@ -137,8 +142,16 @@ export function TransactionForm({
 
     (watchedProducts ?? []).forEach((item) => {
       const product = productMap.get(item?.productId ?? "");
+      const employee = employeeMap.get(item?.employeeId ?? "");
       const price = Number(product?.price ?? 0);
-      totalProducts += price * (item?.qty || 1);
+      const subtotal = price * (item?.qty || 1);
+      const commissionAmount =
+        item?.customCommissionAmount != null && item.customCommissionAmount >= 0
+          ? item.customCommissionAmount
+          : (subtotal * Number(employee?.commission_rate ?? 0)) / 100;
+
+      totalProducts += subtotal;
+      totalCommission += commissionAmount;
     });
 
     const totalItems = (watchedServices?.length ?? 0) + (watchedProducts?.length ?? 0);
@@ -154,28 +167,42 @@ export function TransactionForm({
     setIsSubmitting(true);
     setSubmitError(null);
 
-    values.taxAmount = totals.taxAmount;
-    values.serviceChargeAmount = totals.serviceChargeAmount;
+    const payload: TransactionSchema = {
+      ...values,
+      serviceChargeAmount: totals.serviceChargeAmount,
+      services: values.services.map((service) => ({
+        ...service,
+        employeeAssignments: service.employeeAssignments.map((assignment) => ({
+          id: assignment.id,
+          customCommissionRate: assignment.customCommissionRate ?? null,
+        })),
+      })),
+      products: values.products.map((product) => ({
+        ...product,
+        customCommissionAmount: product.customCommissionAmount ?? null,
+      })),
+      taxAmount: totals.taxAmount,
+    };
 
     const response = await fetch("/api/transactions", {
-      body: JSON.stringify(values),
+      body: JSON.stringify(payload),
       headers: { "Content-Type": "application/json" },
       method: "POST",
     });
 
-    const payload = (await response.json()) as {
+    const responsePayload = (await response.json()) as {
       data?: TransactionSummary;
       error?: string;
     };
 
     setIsSubmitting(false);
 
-    if (!response.ok || !payload.data) {
-      setSubmitError(payload.error ?? "Transaksi gagal disimpan.");
+    if (!response.ok || !responsePayload.data) {
+      setSubmitError(responsePayload.error ?? "Transaksi gagal disimpan.");
       return;
     }
 
-    router.push(`/transactions/${payload.data.transactionId}?created=1`);
+    router.push(`/transactions/${responsePayload.data.transactionId}?created=1`);
     router.refresh();
   }
 
@@ -244,7 +271,7 @@ export function TransactionForm({
                 variant="outline"
                 size="sm"
                 className="shrink-0"
-                onClick={() => appendService({ employeeIds: [], serviceId: "" })}
+                onClick={() => appendService({ employeeAssignments: [], serviceId: "" })}
               >
                 <Plus className="mr-1.5 h-3 w-3" />
                 Tambah layanan
@@ -259,20 +286,34 @@ export function TransactionForm({
               {serviceFields.map((field, index) => {
                 const item = watchedServices?.[index];
                 const service = serviceMap.get(item?.serviceId ?? "");
-                const employeeIds = item?.employeeIds ?? [];
-                const selectedEmployees = employeeIds
-                  .map((employeeId) => employeeMap.get(employeeId))
-                  .filter(Boolean) as EmployeeRow[];
+                const employeeAssignments = item?.employeeAssignments ?? [];
+                const employeeIds = employeeAssignments.map(a => a.id);
                 const defaultPrice = Number(service?.price ?? 0);
                 const finalPrice = item?.finalPrice ?? defaultPrice;
                 const splitBase = employeeIds.length ? finalPrice / employeeIds.length : 0;
-                const commissionRows = selectedEmployees.map((employee) => ({
-                  amount: (splitBase * Number(employee.commission_rate ?? 0)) / 100,
-                  effectiveRate: employeeIds.length
-                    ? Number(employee.commission_rate ?? 0) / employeeIds.length
-                    : 0,
-                  employee,
-                }));
+                const commissionRows = employeeAssignments.flatMap((assignment) => {
+                  const employee = employeeMap.get(assignment.id);
+                  if (!employee) {
+                    return [];
+                  }
+
+                  const isCustom = assignment.customCommissionRate != null && assignment.customCommissionRate >= 0;
+                  const commissionRate = isCustom
+                    ? assignment.customCommissionRate!
+                    : Number(employee?.commission_rate ?? 0);
+                  const amount = (splitBase * commissionRate) / 100;
+                  return [{
+                    amount,
+                    commissionRate,
+                    effectiveRate: isCustom
+                      ? commissionRate / Math.max(employeeIds.length, 1)
+                      : employeeIds.length
+                        ? commissionRate / employeeIds.length
+                        : 0,
+                    employee,
+                    isCustom,
+                  }];
+                });
                 const commissionAmount = commissionRows.reduce((sum, row) => sum + row.amount, 0);
 
                 return (
@@ -307,18 +348,19 @@ export function TransactionForm({
                         <label className="form-label">Karyawan</label>
                         <Controller
                           control={control}
-                          name={`services.${index}.employeeIds`}
+                          name={`services.${index}.employeeAssignments`}
                           render={({ field: controllerField }) => (
                             <EmployeeMultiSelector
                               employees={employees}
                               value={controllerField.value ?? []}
                               onChange={controllerField.onChange}
+                              canViewCommission={canViewCommission}
                             />
                           )}
                         />
-                        {formState.errors.services?.[index]?.employeeIds ? (
+                        {formState.errors.services?.[index]?.employeeAssignments ? (
                           <p className="form-helper text-[var(--danger)]">
-                            {formState.errors.services[index]?.employeeIds?.message}
+                            {formState.errors.services[index]?.employeeAssignments?.message}
                           </p>
                         ) : null}
                       </div>
@@ -363,7 +405,7 @@ export function TransactionForm({
                               commissionRows.map((row) => (
                                 <div key={row.employee.id} className="flex justify-between gap-2">
                                   <span className="text-muted-foreground">
-                                    {row.employee.name} ({formatCommissionRate(row.effectiveRate)}%)
+                                    {row.employee.name} {row.isCustom ? `(Manual ${formatCommissionRate(row.commissionRate)}%)` : `(${formatCommissionRate(row.effectiveRate)}%)`}
                                   </span>
                                   <span className="font-medium text-[var(--gold)]">
                                     {formatRupiah(row.amount)}
@@ -397,7 +439,7 @@ export function TransactionForm({
                   variant="outline"
                   size="sm"
                   className="shrink-0"
-                  onClick={() => appendProduct({ productId: "", qty: 1 })}
+                  onClick={() => appendProduct({ customCommissionAmount: null, employeeId: "", productId: "", qty: 1 })}
                 >
                   <Plus className="mr-1.5 h-3 w-3" />
                   Tambah produk
@@ -412,39 +454,62 @@ export function TransactionForm({
                 {productFields.map((field, index) => {
                   const item = watchedProducts?.[index];
                   const product = productMap.get(item?.productId ?? "");
+                  const seller = employeeMap.get(item?.employeeId ?? "");
                   const price = Number(product?.price ?? 0);
                   const subtotal = price * (item?.qty || 1);
+                  const isCustomProductCommission =
+                    item?.customCommissionAmount != null && item.customCommissionAmount >= 0;
+                  const productCommission = isCustomProductCommission
+                    ? item.customCommissionAmount!
+                    : (subtotal * Number(seller?.commission_rate ?? 0)) / 100;
 
                   return (
-                    <div key={field.id} className="theme-card-muted flex flex-col sm:flex-row gap-4 p-4 relative items-end sm:items-center">
-                       <div className="absolute top-2 right-2 sm:hidden">
+                    <div key={field.id} className="theme-card-muted grid gap-4 p-4 relative">
+                      <div className="absolute top-2 right-2">
                         <Button variant="ghost" size="sm" className="h-8 w-8 min-h-0 p-0 text-muted-foreground hover:text-[var(--danger)]" onClick={() => removeProduct(index)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
 
-                      <div className="form-field flex-1 w-full pr-6 sm:pr-0">
-                        <label className="form-label">Produk</label>
-                        <Controller
-                          control={control}
-                          name={`products.${index}.productId`}
-                          render={({ field: controllerField }) => (
-                            <ProductSelector
-                              products={products}
-                              value={controllerField.value}
-                              onChange={controllerField.onChange}
-                            />
-                          )}
-                        />
-                         {formState.errors.products?.[index]?.productId ? (
+                      <div className="grid gap-4 pr-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_96px]">
+                        <div className="form-field">
+                          <label className="form-label">Produk</label>
+                          <Controller
+                            control={control}
+                            name={`products.${index}.productId`}
+                            render={({ field: controllerField }) => (
+                              <ProductSelector
+                                products={products}
+                                value={controllerField.value}
+                                onChange={controllerField.onChange}
+                              />
+                            )}
+                          />
+                          {formState.errors.products?.[index]?.productId ? (
                             <p className="form-helper text-[var(--danger)]">
                               {formState.errors.products[index]?.productId?.message}
                             </p>
                           ) : null}
-                      </div>
-                      
-                      <div className="flex gap-4 w-full sm:w-auto items-end">
-                        <div className="form-field w-24">
+                        </div>
+
+                        <div className="form-field">
+                          <label className="form-label">Penjual</label>
+                          <Select {...register(`products.${index}.employeeId`)}>
+                            <option value="">Pilih penjual</option>
+                            {employees.map((employee) => (
+                              <option key={employee.id} value={employee.id}>
+                                {employee.name}
+                              </option>
+                            ))}
+                          </Select>
+                          {formState.errors.products?.[index]?.employeeId ? (
+                            <p className="form-helper text-[var(--danger)]">
+                              {formState.errors.products[index]?.employeeId?.message}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        <div className="form-field">
                           <label className="form-label">Qty</label>
                           <Input
                             type="number"
@@ -452,17 +517,60 @@ export function TransactionForm({
                             {...register(`products.${index}.qty`, { valueAsNumber: true })}
                           />
                         </div>
-                        
-                        <div className="form-field flex-1 sm:w-32">
-                          <label className="form-label">Subtotal</label>
-                          <div className="form-input flex items-center bg-transparent border-transparent px-0 font-medium text-foreground">
-                            {formatRupiah(subtotal)}
+                      </div>
+
+                      <div className="grid gap-4 rounded-xl border border-[color:var(--border)] bg-[var(--surface-elevated)] p-3 sm:grid-cols-3">
+                        <div className="form-field">
+                          <label className="text-xs font-semibold text-muted-foreground">Subtotal produk</label>
+                          <div className="form-input flex min-h-9 items-center bg-transparent px-0 text-sm font-medium text-foreground">
+                            {subtotal ? formatRupiah(subtotal) : "-"}
                           </div>
                         </div>
 
-                        <Button variant="ghost" className="hidden sm:flex h-11 w-11 min-h-0 p-0 text-muted-foreground hover:text-[var(--danger)]" onClick={() => removeProduct(index)}>
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
+                        <div className="form-field">
+                          <label className="text-xs font-semibold text-muted-foreground">Komisi Manual (Rp)</label>
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            step={1000}
+                            value={item?.customCommissionAmount ?? ""}
+                            onChange={(event) =>
+                              setValue(`products.${index}.customCommissionAmount`, event.target.value ? Number(event.target.value) : null, {
+                                shouldDirty: true,
+                                shouldValidate: true,
+                              })
+                            }
+                            placeholder="Kosongkan untuk default"
+                            className="h-9 min-h-0 text-sm"
+                          />
+                          {seller ? (
+                            <span className="text-[10px] text-muted-foreground">
+                              Default {formatCommissionRate(Number(seller.commission_rate ?? 0))}% dari subtotal
+                            </span>
+                          ) : null}
+                          {formState.errors.products?.[index]?.customCommissionAmount ? (
+                            <p className="form-helper text-[var(--danger)]">
+                              {formState.errors.products[index]?.customCommissionAmount?.message}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        <div className="form-field">
+                          <label className="text-xs font-semibold text-muted-foreground">Komisi estimasi</label>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between gap-2">
+                              <span className="text-muted-foreground">
+                                {seller
+                                  ? `${seller.name} ${isCustomProductCommission ? "(Manual)" : `(${formatCommissionRate(Number(seller.commission_rate ?? 0))}%)`}`
+                                  : "Pilih penjual"}
+                              </span>
+                              <span className="font-medium text-[var(--gold)]">
+                                {formatRupiah(productCommission)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );

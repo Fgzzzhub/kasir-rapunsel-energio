@@ -7,11 +7,21 @@ export const transactionSchema = z.object({
   services: z
     .array(
       z.object({
-        employeeIds: z
-          .array(z.string().uuid("Karyawan wajib dipilih."))
+        employeeAssignments: z
+          .array(
+            z.object({
+              id: z.string().uuid("Karyawan tidak valid."),
+              customCommissionRate: z
+                .number()
+                .min(0, "Komisi minimal 0%.")
+                .max(100, "Komisi maksimal 100%.")
+                .nullable()
+                .optional(),
+            })
+          )
           .min(1, "Pilih minimal satu karyawan untuk layanan ini.")
           .refine(
-            (employeeIds) => new Set(employeeIds).size === employeeIds.length,
+            (assignments) => new Set(assignments.map(a => a.id)).size === assignments.length,
             "Karyawan tidak boleh duplikat.",
           ),
         serviceId: z.string().uuid("Layanan wajib dipilih."),
@@ -25,6 +35,8 @@ export const transactionSchema = z.object({
       z.object({
         productId: z.string().uuid("Produk wajib dipilih."),
         qty: z.number().min(1, "Kuantitas minimal 1."),
+        employeeId: z.string().uuid("Penjual wajib dipilih."),
+        customCommissionAmount: z.number().min(0, "Komisi produk minimal 0.").nullable().optional(),
       }),
     )
     .default([]),

@@ -393,6 +393,10 @@ export type Database = {
       transaction_products: {
         Row: {
           created_at: string;
+          commission_amount: number;
+          commission_rate_snapshot: number;
+          employee_id: string | null;
+          employee_name_snapshot: string | null;
           id: string;
           price_snapshot: number;
           product_id: string;
@@ -403,6 +407,10 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          commission_amount?: number;
+          commission_rate_snapshot?: number;
+          employee_id?: string | null;
+          employee_name_snapshot?: string | null;
           id?: string;
           price_snapshot: number;
           product_id: string;
@@ -413,6 +421,10 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          commission_amount?: number;
+          commission_rate_snapshot?: number;
+          employee_id?: string | null;
+          employee_name_snapshot?: string | null;
           id?: string;
           price_snapshot?: number;
           product_id?: string;
