@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Rapunsel Energio Manager</title>
+  <desc id="desc">PWA icon for the Rapunsel Salon and Energio Reflexologi management app.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f9edea" />
+      <stop offset="50%" stop-color="#f7d3dc" />
+      <stop offset="100%" stop-color="#cdebd9" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+  <circle cx="182" cy="190" r="92" fill="#d87898" opacity="0.92" />
+  <circle cx="330" cy="322" r="98" fill="#4c9c6a" opacity="0.92" />
+  <path d="M192 118c38 0 70 31 70 70 0 39-32 70-70 70h-26v74h-54V118h80Zm0 90c11 0 20-9 20-20s-9-20-20-20h-26v40h26Z" fill="#fffdfb" />
+  <path d="M298 252h58c49 0 88 39 88 88s-39 88-88 88h-58V252Zm58 126c21 0 38-17 38-38s-17-38-38-38h-8v76h8Z" fill="#fffdfb" />
+</svg>
