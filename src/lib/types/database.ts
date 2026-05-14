@@ -828,16 +828,26 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      cancel_transaction: {
+        Args: {
+          p_transaction_id: string;
+          p_cancelled_by: string;
+          p_reason: string | null;
+        };
+        Returns: Json;
+      };
       create_transaction: {
         Args: {
           p_business_id: string;
+          p_created_by: string;
           p_customer_name: string;
           p_customer_phone: string | null;
-          p_payment_method: string;
-          p_notes: string | null;
-          p_created_by: string;
           p_services: Json;
           p_products: Json;
+          p_notes: string | null;
+          p_payment_method: string;
+          p_tax_amount: number;
+          p_service_charge_amount: number;
         };
         Returns: Json;
       };

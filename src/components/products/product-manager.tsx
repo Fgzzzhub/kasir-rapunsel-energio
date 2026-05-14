@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PencilLine, Plus, Power } from "lucide-react";
+import { MoreVertical, PencilLine, Plus, Power, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { RupiahFormatter } from "@/components/ui/rupiah-formatter";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuPortal, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import type { ProductRow } from "@/lib/types/app";
 
 type ProductManagerProps = {
@@ -68,6 +70,7 @@ export function ProductManager({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingToggle, setPendingToggle] = useState<ProductRow | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ProductRow | null>(null);
 
   const filteredProducts = useMemo(() => {
     if (!search.trim()) {
@@ -212,21 +215,46 @@ export function ProductManager({
               label: "Aksi",
               render: (product) =>
                 canManage ? (
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button
-                      className="px-3"
-                      variant="ghost"
-                      onClick={() => hydrateForm(product)}
-                    >
-                      <PencilLine className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      className="px-3"
-                      variant="secondary"
-                      onClick={() => setPendingToggle(product)}
-                    >
-                      <Power className="h-4 w-4" />
-                    </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    <Tooltip content="Edit">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => hydrateForm(product)}
+                      >
+                        <PencilLine className="h-4 w-4" />
+                      </Button>
+                    </Tooltip>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-[var(--surface-hover)] hover:text-foreground">
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuPortal>
+                        <DropdownMenuContent align="end" className="z-50">
+                          <DropdownMenuItem
+                            onClick={() => setPendingToggle(product)}
+                          >
+                            <Power className="h-4 w-4" />
+                            {product.is_active ? "Nonaktifkan" : "Aktifkan"}
+                          </DropdownMenuItem>
+                          {product.is_active ? (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                destructive
+                                onClick={() => setPendingDelete(product)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Hapus
+                              </DropdownMenuItem>
+                            </>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenu>
                   </div>
                 ) : (
                   <span className="text-xs text-muted-foreground">Lihat saja</span>
@@ -452,6 +480,37 @@ export function ProductManager({
             },
             pendingToggle.id,
           );
+        }}
+      />
+
+      <ConfirmDialog
+        confirmLabel="Hapus Produk"
+        description={`Anda akan menghapus produk "${pendingDelete?.name ?? ""}". Data stok dan riwayat penjualan tetap aman, tetapi produk tidak akan muncul di transaksi baru.`}
+        open={Boolean(pendingDelete)}
+        title="Hapus produk?"
+        variant="danger"
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (!pendingDelete) {
+            return;
+          }
+
+          void upsertProduct(
+            {
+              category: pendingDelete.category ?? "",
+              description: pendingDelete.description ?? "",
+              isActive: false,
+              name: pendingDelete.name,
+              price: Number(pendingDelete.price),
+              sku: pendingDelete.sku ?? "",
+              trackStock: pendingDelete.track_stock ?? false,
+              costPrice: Number(pendingDelete.cost_price ?? 0),
+              minimumStock: Number(pendingDelete.minimum_stock ?? 5),
+              initialStock: 0,
+            },
+            pendingDelete.id,
+          );
+          setPendingDelete(null);
         }}
       />
     </div>

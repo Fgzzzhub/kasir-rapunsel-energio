@@ -1,4 +1,4 @@
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { EmployeeRow } from "@/lib/types/app";
 
 export function EmployeeSelector({
@@ -16,14 +16,18 @@ export function EmployeeSelector({
     <Select
       name={name}
       value={value}
-      onChange={(event) => onChange?.(event.target.value)}
+      onValueChange={(val) => onChange?.(val)}
     >
-      <option value="">Pilih karyawan</option>
-      {employees.map((employee) => (
-        <option key={employee.id} value={employee.id}>
-          {employee.name}
-        </option>
-      ))}
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Pilih karyawan..." />
+      </SelectTrigger>
+      <SelectContent className="z-50">
+        {employees.map((employee) => (
+          <SelectItem key={employee.id} value={employee.id}>
+            {employee.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
     </Select>
   );
 }

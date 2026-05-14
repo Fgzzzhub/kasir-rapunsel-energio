@@ -13,6 +13,7 @@ import {
   BarChart3,
   Settings,
   Warehouse,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -35,6 +36,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   BarChart3,
   Settings,
   Warehouse,
+  Lock,
 };
 
 export function Sidebar({ role }: { role: AppRole }) {

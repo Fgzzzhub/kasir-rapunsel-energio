@@ -37,8 +37,9 @@ export default async function NewTransactionPage() {
           key={session.selectedBusiness.id}
           businessId={session.selectedBusiness.id}
           businessSlug={session.selectedBusiness.slug}
-          canViewCommission={session.profile.role === "owner"}
+          canViewCommission={session.profile.role === "owner" || session.profile.role === "admin"}
           employees={employees}
+          role={session.profile.role}
           services={services}
           products={products}
           taxPercentage={taxPercentage}

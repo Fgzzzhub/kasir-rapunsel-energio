@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PencilLine, Plus, Power } from "lucide-react";
+import { MoreVertical, PencilLine, Plus, Power, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { RupiahFormatter } from "@/components/ui/rupiah-formatter";
+import { Tooltip } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuPortal, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import type { EmployeeRow } from "@/lib/types/app";
 
 type EmployeeManagerProps = {
@@ -57,6 +59,7 @@ export function EmployeeManager({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingToggle, setPendingToggle] = useState<EmployeeRow | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<EmployeeRow | null>(null);
 
   const filteredEmployees = useMemo(() => {
     if (!search.trim()) {
@@ -202,17 +205,41 @@ export function EmployeeManager({
               key: "actions",
               label: "Aksi",
               render: (employee) => (
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button className="px-3" variant="ghost" onClick={() => hydrateForm(employee)}>
-                    <PencilLine className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    className="px-3"
-                    variant="secondary"
-                    onClick={() => setPendingToggle(employee)}
-                  >
-                    <Power className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center justify-end gap-1">
+                  <Tooltip content="Edit">
+                    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => hydrateForm(employee)}>
+                      <PencilLine className="h-4 w-4" />
+                    </Button>
+                  </Tooltip>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-[var(--surface-hover)] hover:text-foreground">
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuContent align="end" className="z-50">
+                        <DropdownMenuItem
+                          onClick={() => setPendingToggle(employee)}
+                        >
+                          <Power className="h-4 w-4" />
+                          {employee.is_active ? "Nonaktifkan" : "Aktifkan"}
+                        </DropdownMenuItem>
+                        {employee.is_active ? (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              destructive
+                              onClick={() => setPendingDelete(employee)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Hapus
+                            </DropdownMenuItem>
+                          </>
+                        ) : null}
+                      </DropdownMenuContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenu>
                 </div>
               ),
             },
@@ -374,6 +401,33 @@ export function EmployeeManager({
             },
             pendingToggle.id,
           );
+        }}
+      />
+
+      <ConfirmDialog
+        confirmLabel="Hapus Karyawan"
+        description={`Anda akan menghapus karyawan "${pendingDelete?.name ?? ""}". Data komisi dan riwayat transaksi tetap aman, tetapi karyawan tidak akan bisa dipilih di transaksi baru.`}
+        open={Boolean(pendingDelete)}
+        title="Hapus karyawan?"
+        variant="danger"
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (!pendingDelete) {
+            return;
+          }
+
+          void upsertEmployee(
+            {
+              baseSalary: Number(pendingDelete.base_salary),
+              commissionRate: String(pendingDelete.commission_rate),
+              isActive: false,
+              name: pendingDelete.name,
+              phone: pendingDelete.phone ?? "",
+              position: pendingDelete.position ?? "",
+            },
+            pendingDelete.id,
+          );
+          setPendingDelete(null);
         }}
       />
     </div>

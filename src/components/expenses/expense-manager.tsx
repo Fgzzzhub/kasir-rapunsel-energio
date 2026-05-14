@@ -11,7 +11,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { RupiahFormatter } from "@/components/ui/rupiah-formatter";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { EXPENSE_CATEGORY_OPTIONS } from "@/lib/constants/app";
 import type { AppBusiness, ExpenseListItem } from "@/lib/types/app";
@@ -244,11 +244,9 @@ export function ExpenseManager({
               Scope bisnis
             </label>
             <Select
-              id="expenseScope"
               value={scope}
-              onChange={(event) => {
-                const nextScope =
-                  event.target.value === "combined" ? "combined" : "selected";
+              onValueChange={(value) => {
+                const nextScope = value === "combined" ? "combined" : "selected";
 
                 setScope(nextScope);
 
@@ -257,8 +255,13 @@ export function ExpenseManager({
                 }
               }}
             >
-              <option value="selected">{selectedBusinessName}</option>
-              <option value="combined">Semua bisnis</option>
+              <SelectTrigger id="expenseScope" className="w-full">
+                <SelectValue placeholder="Scope bisnis" />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                <SelectItem value="selected">{selectedBusinessName}</SelectItem>
+                <SelectItem value="combined">Semua bisnis</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div className="form-field">
@@ -390,17 +393,21 @@ export function ExpenseManager({
               </label>
               <Select
                 disabled={scope === "selected"}
-                id="expenseBusiness"
                 value={form.businessId}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, businessId: event.target.value }))
+                onValueChange={(value) =>
+                  setForm((current) => ({ ...current, businessId: value }))
                 }
               >
-                {businesses.map((business) => (
-                  <option key={business.id} value={business.id}>
-                    {business.name}
-                  </option>
-                ))}
+                <SelectTrigger id="expenseBusiness" className="w-full">
+                  <SelectValue placeholder="Pilih bisnis..." />
+                </SelectTrigger>
+                <SelectContent className="z-50">
+                  {businesses.map((business) => (
+                    <SelectItem key={business.id} value={business.id}>
+                      {business.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="form-field">
@@ -422,18 +429,22 @@ export function ExpenseManager({
                   Kategori
                 </label>
                 <Select
-                  id="expenseCategory"
                   required
                   value={form.category}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, category: event.target.value }))
+                  onValueChange={(value) =>
+                    setForm((current) => ({ ...current, category: value }))
                   }
                 >
-                  {EXPENSE_CATEGORY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
+                  <SelectTrigger id="expenseCategory" className="w-full">
+                    <SelectValue placeholder="Pilih kategori..." />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    {EXPENSE_CATEGORY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div className="form-field">

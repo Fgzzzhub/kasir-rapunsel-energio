@@ -57,6 +57,7 @@ export const APP_NAVIGATION: Array<{
 }> = [
   { href: "/dashboard", icon: "LayoutDashboard", label: "Dashboard", roles: ["owner", "admin"] },
   { href: "/transactions", icon: "Receipt", label: "Transaksi", roles: ["owner", "admin"] },
+  { href: "/tutup-kasir", icon: "Lock", label: "Tutup Kasir", roles: ["owner", "admin"] },
   { href: "/customers", icon: "Users", label: "Data Customer", roles: ["owner", "admin"] },
   { href: "/attendance", icon: "CalendarCheck", label: "Absensi", roles: ["owner", "admin"] },
   { href: "/services", icon: "Scissors", label: "Layanan", roles: ["owner", "admin"] },

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 import type { ProductRow, SupplierRow } from "@/lib/types/app";
@@ -199,14 +199,18 @@ export function StockLevels({ businessId }: { businessId: string }) {
                   <div className="form-field">
                     <label className="form-label">Jenis Penyesuaian</label>
                     <Select 
-                      className="h-11"
                       required
                       value={form.movementType}
-                      onChange={(e) => setForm({ ...form, movementType: e.target.value })}
+                      onValueChange={(val) => setForm({ ...form, movementType: val })}
                     >
-                      <option value="in">Tambah Stok (IN)</option>
-                      <option value="out">Kurangi Stok (OUT)</option>
-                      <option value="adjustment">Koreksi Manual (ADJUSTMENT)</option>
+                      <SelectTrigger className="h-11 w-full">
+                        <SelectValue placeholder="Pilih Jenis" />
+                      </SelectTrigger>
+                      <SelectContent className="z-50">
+                        <SelectItem value="in">Tambah Stok (IN)</SelectItem>
+                        <SelectItem value="out">Kurangi Stok (OUT)</SelectItem>
+                        <SelectItem value="adjustment">Koreksi Manual (ADJUSTMENT)</SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
                   <div className="form-field">
@@ -227,14 +231,18 @@ export function StockLevels({ businessId }: { businessId: string }) {
                   <div className="form-field animate-in fade-in slide-in-from-top-2">
                     <label className="form-label">Supplier (Opsional)</label>
                     <Select 
-                      className="h-11"
-                      value={form.supplierId}
-                      onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
+                      value={form.supplierId || "none"}
+                      onValueChange={(val) => setForm({ ...form, supplierId: val === "none" ? "" : val })}
                     >
-                      <option value="">Pilih Supplier...</option>
-                      {suppliers.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
+                      <SelectTrigger className="h-11 w-full">
+                        <SelectValue placeholder="Pilih Supplier..." />
+                      </SelectTrigger>
+                      <SelectContent className="z-50">
+                        <SelectItem value="none">Pilih Supplier...</SelectItem>
+                        {suppliers.map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
                 )}

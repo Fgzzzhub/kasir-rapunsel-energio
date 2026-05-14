@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { EmployeeRow } from "@/lib/types/app";
 import { formatCommissionRate } from "@/lib/utils/transaction-services";
 
@@ -31,17 +31,21 @@ export function EmployeeMultiSelector({
     <div className="space-y-3">
       <Select
         value=""
-        onChange={(event) => {
-          if (!event.target.value) return;
-          onChange([...value, { id: event.target.value, customCommissionRate: null }]);
+        onValueChange={(val) => {
+          if (!val) return;
+          onChange([...value, { id: val, customCommissionRate: null }]);
         }}
       >
-        <option value="">Tambah karyawan</option>
-        {availableEmployees.map((employee) => (
-          <option key={employee.id} value={employee.id}>
-            {employee.name}
-          </option>
-        ))}
+        <SelectTrigger className="w-full bg-[var(--surface-muted)] border-[color:var(--border)] text-sm font-semibold">
+          <SelectValue placeholder="Tambah karyawan..." />
+        </SelectTrigger>
+        <SelectContent className="z-50">
+          {availableEmployees.map((employee) => (
+            <SelectItem key={employee.id} value={employee.id}>
+              {employee.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
       </Select>
       <div className="grid gap-3">
         {selectedEmployees.length ? (

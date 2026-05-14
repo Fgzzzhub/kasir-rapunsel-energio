@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Badge } from "@/components/ui/badge";
@@ -92,21 +92,30 @@ export function StockMovements({ businessId }: { businessId: string }) {
           
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-muted-foreground">Product</label>
-            <Select required value={productId} onChange={(e) => setProductId(e.target.value)}>
-              <option value="">Select Product</option>
-              {products.filter(p => p.is_active).map(p => (
-                <option key={p.id} value={p.id}>{p.name} (Stock: {p.current_stock ?? 0})</option>
-              ))}
+            <Select required value={productId} onValueChange={(val) => setProductId(val)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Product" />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                {products.filter(p => p.is_active).map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name} (Stock: {p.current_stock ?? 0})</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
 
           <div className="flex gap-4">
             <div className="flex flex-1 flex-col gap-1.5">
               <label className="text-sm font-medium text-muted-foreground">Type</label>
-              <Select required value={movementType} onChange={(e) => setMovementType(e.target.value)}>
-                <option value="in">Stock In (Restock)</option>
-                <option value="out">Stock Out (Spoilage/Usage)</option>
-                <option value="adjustment">Adjustment (Correction)</option>
+              <Select required value={movementType} onValueChange={(val) => setMovementType(val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Type" />
+                </SelectTrigger>
+                <SelectContent className="z-50">
+                  <SelectItem value="in">Stock In (Restock)</SelectItem>
+                  <SelectItem value="out">Stock Out (Spoilage/Usage)</SelectItem>
+                  <SelectItem value="adjustment">Adjustment (Correction)</SelectItem>
+                </SelectContent>
               </Select>
             </div>
             
@@ -126,11 +135,16 @@ export function StockMovements({ businessId }: { businessId: string }) {
           {movementType === "in" && (
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-muted-foreground">Supplier (Optional)</label>
-              <Select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
-                <option value="">None</option>
-                {suppliers.filter(s => s.is_active).map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+              <Select value={supplierId || "none"} onValueChange={(val) => setSupplierId(val === "none" ? "" : val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent className="z-50">
+                  <SelectItem value="none">None</SelectItem>
+                  {suppliers.filter(s => s.is_active).map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
           )}

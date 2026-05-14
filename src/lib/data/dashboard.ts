@@ -40,16 +40,19 @@ export async function getDashboardMetrics({
   let monthlyQuery = supabase
     .from("transactions")
     .select("*, business:businesses(name, slug, theme), transaction_services(*), transaction_products(*)")
+    .eq("status", "valid")
     .gte("created_at", monthStart.toISOString())
     .lte("created_at", monthEnd.toISOString());
   let todayQuery = supabase
     .from("transactions")
     .select("*, business:businesses(name, slug, theme), transaction_services(*), transaction_products(*)")
+    .eq("status", "valid")
     .gte("created_at", todayStart.toISOString())
     .lte("created_at", todayEnd.toISOString());
   let recentQuery = supabase
     .from("transactions")
     .select("*, business:businesses(name, slug, theme), transaction_services(*), transaction_products(*)")
+    .eq("status", "valid")
     .order("created_at", { ascending: false })
     .limit(5);
   let expenseQuery = supabase

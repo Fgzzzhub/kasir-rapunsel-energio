@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RupiahFormatter } from "@/components/ui/rupiah-formatter";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { requireAuthenticatedProfile } from "@/lib/auth/session";
 import { ATTENDANCE_STATUS_OPTIONS } from "@/lib/constants/attendance";
 import { getAttendanceRecords } from "@/lib/data/attendance";
@@ -71,28 +71,43 @@ export default async function AttendancePage({
           {session.profile.role === "owner" ? (
             <div className="form-field">
               <label className="form-label text-[10px] uppercase">Cakupan Bisnis</label>
-              <Select defaultValue={filters.scope} id="scope" name="scope">
-                <option value="selected">{session.selectedBusiness.name}</option>
-                <option value="combined">Semua bisnis</option>
+              <Select defaultValue={filters.scope || "selected"} name="scope">
+                <SelectTrigger id="scope" className="w-full">
+                  <SelectValue placeholder="Cakupan Bisnis" />
+                </SelectTrigger>
+                <SelectContent className="z-50">
+                  <SelectItem value="selected">{session.selectedBusiness.name}</SelectItem>
+                  <SelectItem value="combined">Semua bisnis</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           ) : null}
           <div className="form-field">
             <label className="form-label text-[10px] uppercase">Filter Karyawan</label>
-            <Select defaultValue={filters.employeeId} id="employeeId" name="employeeId">
-              <option value="">Semua karyawan</option>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>{employee.name}</option>
-              ))}
+            <Select defaultValue={filters.employeeId || "all"} name="employeeId">
+              <SelectTrigger id="employeeId" className="w-full">
+                <SelectValue placeholder="Semua karyawan" />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                <SelectItem value="all">Semua karyawan</SelectItem>
+                {employees.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>{employee.name}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="form-field">
             <label className="form-label text-[10px] uppercase">Status</label>
-            <Select defaultValue={filters.status} id="status" name="status">
-              <option value="">Semua status</option>
-              {ATTENDANCE_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
+            <Select defaultValue={filters.status || "all"} name="status">
+              <SelectTrigger id="status" className="w-full">
+                <SelectValue placeholder="Semua status" />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                <SelectItem value="all">Semua status</SelectItem>
+                {ATTENDANCE_STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="form-field">

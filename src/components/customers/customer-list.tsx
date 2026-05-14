@@ -8,7 +8,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { RupiahFormatter } from "@/components/ui/rupiah-formatter";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CustomerListItem, CustomerSort } from "@/lib/data/customers";
 import type { AppBusiness, AppRole } from "@/lib/types/app";
 import { formatDateShort } from "@/lib/utils/date";
@@ -73,13 +73,18 @@ export function CustomerList({
             <label className="form-label" htmlFor="businessId">
               Bisnis
             </label>
-            <Select defaultValue={filters.businessId ?? selectedBusiness.id} id="businessId" name="businessId">
-              <option value="all">Semua bisnis</option>
-              {businesses.map((business) => (
-                <option key={business.id} value={business.id}>
-                  {business.name}
-                </option>
-              ))}
+            <Select defaultValue={filters.businessId ?? selectedBusiness.id} name="businessId">
+              <SelectTrigger id="businessId" className="w-full">
+                <SelectValue placeholder="Pilih bisnis..." />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                <SelectItem value="all">Semua bisnis</SelectItem>
+                {businesses.map((business) => (
+                  <SelectItem key={business.id} value={business.id}>
+                    {business.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         ) : null}
@@ -87,12 +92,17 @@ export function CustomerList({
           <label className="form-label" htmlFor="sort">
             Urutkan
           </label>
-          <Select defaultValue={filters.sort ?? "newest"} id="sort" name="sort">
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
+          <Select defaultValue={filters.sort ?? "newest"} name="sort">
+            <SelectTrigger id="sort" className="w-full">
+              <SelectValue placeholder="Urutkan..." />
+            </SelectTrigger>
+            <SelectContent className="z-50">
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
         <div className="form-field">

@@ -7,7 +7,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { RupiahFormatter } from "@/components/ui/rupiah-formatter";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FinancialReportData } from "@/lib/types/app";
 import { formatDateLong } from "@/lib/utils/date";
 
@@ -56,19 +56,29 @@ export function FinancialReportView({
             <label className="form-label" htmlFor="reportScope">
               Scope bisnis
             </label>
-            <Select defaultValue={filters.scope} id="reportScope" name="scope">
-              <option value="selected">{businessName}</option>
-              <option value="combined">Semua bisnis</option>
+            <Select defaultValue={filters.scope} name="scope">
+              <SelectTrigger id="reportScope" className="w-full">
+                <SelectValue placeholder="Scope bisnis" />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                <SelectItem value="selected">{businessName}</SelectItem>
+                <SelectItem value="combined">Semua bisnis</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div className="form-field">
             <label className="form-label" htmlFor="reportPreset">
               Mode laporan
             </label>
-            <Select defaultValue={filters.preset} id="reportPreset" name="preset">
-              <option value="daily">Harian</option>
-              <option value="monthly">Bulanan</option>
-              <option value="custom">Custom</option>
+            <Select defaultValue={filters.preset} name="preset">
+              <SelectTrigger id="reportPreset" className="w-full">
+                <SelectValue placeholder="Mode laporan" />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                <SelectItem value="daily">Harian</SelectItem>
+                <SelectItem value="monthly">Bulanan</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div className="form-field">

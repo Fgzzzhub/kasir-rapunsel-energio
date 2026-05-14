@@ -1,4 +1,4 @@
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ServiceRow } from "@/lib/types/app";
 
 export function ServiceSelector({
@@ -16,14 +16,18 @@ export function ServiceSelector({
     <Select
       name={name}
       value={value}
-      onChange={(event) => onChange?.(event.target.value)}
+      onValueChange={(val) => onChange?.(val)}
     >
-      <option value="">Pilih layanan</option>
-      {services.map((service) => (
-        <option key={service.id} value={service.id}>
-          {service.name}
-        </option>
-      ))}
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Pilih layanan..." />
+      </SelectTrigger>
+      <SelectContent className="z-50">
+        {services.map((service) => (
+          <SelectItem key={service.id} value={service.id}>
+            {service.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
     </Select>
   );
 }

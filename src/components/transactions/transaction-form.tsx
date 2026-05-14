@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, Search, Check, Tag } from "lucide-react";
+import { Plus, Trash2, Search, Check, Tag, PencilLine, Loader2 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Controller, useFieldArray, useForm, useWatch, type Resolver } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -9,11 +9,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { PAYMENT_METHOD_OPTIONS, isRapunselBusiness } from "@/lib/constants/app";
 import { transactionSchema, type TransactionSchema } from "@/lib/schemas/transaction";
-import type { EmployeeRow, ServiceRow, ProductRow, TransactionSummary } from "@/lib/types/app";
+import type { AppRole, EmployeeRow, ServiceRow, ProductRow, TransactionSummary } from "@/lib/types/app";
 import { formatRupiah } from "@/lib/utils/currency";
 import { formatCommissionRate } from "@/lib/utils/transaction-services";
 
@@ -27,6 +27,7 @@ type TransactionFormProps = {
   businessSlug: string;
   canViewCommission: boolean;
   employees: EmployeeRow[];
+  role: AppRole;
   services: ServiceRow[];
   products: ProductRow[];
   taxPercentage?: number;
@@ -38,6 +39,7 @@ export function TransactionForm({
   businessSlug,
   canViewCommission,
   employees,
+  role,
   services,
   products,
   taxPercentage = 0,
@@ -184,26 +186,30 @@ export function TransactionForm({
       taxAmount: totals.taxAmount,
     };
 
-    const response = await fetch("/api/transactions", {
-      body: JSON.stringify(payload),
-      headers: { "Content-Type": "application/json" },
-      method: "POST",
-    });
+    try {
+      const response = await fetch("/api/transactions", {
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
 
-    const responsePayload = (await response.json()) as {
-      data?: TransactionSummary;
-      error?: string;
-    };
+      const responsePayload = (await response.json()) as {
+        data?: TransactionSummary;
+        error?: string;
+      };
 
-    setIsSubmitting(false);
+      if (!response.ok || !responsePayload.data) {
+        setSubmitError(responsePayload.error ?? "Transaksi gagal disimpan.");
+        return;
+      }
 
-    if (!response.ok || !responsePayload.data) {
-      setSubmitError(responsePayload.error ?? "Transaksi gagal disimpan.");
-      return;
+      router.push(`/transactions/${responsePayload.data.transactionId}?created=1`);
+      router.refresh();
+    } catch (error) {
+      setSubmitError("Terjadi kesalahan jaringan atau server.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    router.push(`/transactions/${responsePayload.data.transactionId}?created=1`);
-    router.refresh();
   }
 
   return (
@@ -369,7 +375,11 @@ export function TransactionForm({
                     <div className="grid gap-4 sm:grid-cols-3 bg-[var(--surface-elevated)] p-3 rounded-xl border border-[color:var(--border)] mt-2">
                       <div className="form-field">
                         <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                          <Tag className="w-3 h-3" /> Harga (Bisa diubah)
+                          <Tag className="w-3 h-3" /> Harga
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--accent-soft)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--accent)]">
+                            <PencilLine className="w-2.5 h-2.5" />
+                            {role === "admin" ? "Admin" : "Override"}
+                          </span>
                         </label>
                         <Controller
                           control={control}
@@ -399,7 +409,15 @@ export function TransactionForm({
                       </div>
                       {canViewCommission ? (
                         <div className="form-field">
-                          <label className="text-xs font-semibold text-muted-foreground">Komisi estimasi</label>
+                          <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                            Komisi estimasi
+                            {role === "admin" && (
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-purple-500/12 px-1.5 py-0.5 text-[9px] font-bold text-purple-400 border border-purple-500/20">
+                                <PencilLine className="w-2.5 h-2.5" />
+                                Editable
+                              </span>
+                            )}
+                          </label>
                           <div className="space-y-1 text-sm">
                             {commissionRows.length ? (
                               commissionRows.map((row) => (
@@ -494,14 +512,24 @@ export function TransactionForm({
 
                         <div className="form-field">
                           <label className="form-label">Penjual</label>
-                          <Select {...register(`products.${index}.employeeId`)}>
-                            <option value="">Pilih penjual</option>
-                            {employees.map((employee) => (
-                              <option key={employee.id} value={employee.id}>
-                                {employee.name}
-                              </option>
-                            ))}
-                          </Select>
+                          <Controller
+                            control={control}
+                            name={`products.${index}.employeeId`}
+                            render={({ field: controllerField }) => (
+                              <Select value={controllerField.value} onValueChange={controllerField.onChange}>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Pilih penjual..." />
+                                </SelectTrigger>
+                                <SelectContent className="z-50">
+                                  {employees.map((employee) => (
+                                    <SelectItem key={employee.id} value={employee.id}>
+                                      {employee.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
                           {formState.errors.products?.[index]?.employeeId ? (
                             <p className="form-helper text-[var(--danger)]">
                               {formState.errors.products[index]?.employeeId?.message}
@@ -528,7 +556,13 @@ export function TransactionForm({
                         </div>
 
                         <div className="form-field">
-                          <label className="text-xs font-semibold text-muted-foreground">Komisi Manual (Rp)</label>
+                          <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                            Komisi Manual (Rp)
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-purple-500/12 px-1.5 py-0.5 text-[9px] font-bold text-purple-400 border border-purple-500/20">
+                              <PencilLine className="w-2.5 h-2.5" />
+                              {role === "admin" ? "Admin" : "Override"}
+                            </span>
+                          </label>
                           <Input
                             type="number"
                             inputMode="numeric"
@@ -590,34 +624,46 @@ export function TransactionForm({
           ) : null}
 
           {/* Payment Section */}
-          <div className="grid gap-4 md:grid-cols-2 pt-4 border-t border-[color:var(--border)]">
-            <div className="form-field">
-              <div className="mb-1 flex items-center gap-3 md:col-span-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-sm font-semibold text-[var(--accent)]">3</span>
-                <p className="section-title">Pembayaran</p>
-              </div>
-              <label className="form-label" htmlFor="paymentMethod">
-                Metode pembayaran
-              </label>
-              <Select id="paymentMethod" {...register("paymentMethod")}>
-                {PAYMENT_METHOD_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
-              {formState.errors.paymentMethod ? (
-                <p className="form-helper text-[var(--danger)]">{formState.errors.paymentMethod.message}</p>
-              ) : null}
+          <div className="pt-4 border-t border-[color:var(--border)]">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-sm font-semibold text-[var(--accent)]">3</span>
+              <p className="section-title">Pembayaran</p>
             </div>
-            <div className="form-field">
-              <label className="form-label" htmlFor="transactionNotes">
-                Catatan (Opsional)
-              </label>
-              <Input id="transactionNotes" placeholder="Catatan transaksi..." {...register("notes")} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div className="form-field">
+                <label className="form-label" htmlFor="paymentMethod">
+                  Metode pembayaran
+                </label>
+                <Controller
+                  control={control}
+                  name="paymentMethod"
+                  render={({ field: controllerField }) => (
+                    <Select value={controllerField.value} onValueChange={controllerField.onChange}>
+                      <SelectTrigger id="paymentMethod" className="w-full">
+                        <SelectValue placeholder="Pilih metode pembayaran..." />
+                      </SelectTrigger>
+                      <SelectContent className="z-50">
+                        {PAYMENT_METHOD_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {formState.errors.paymentMethod ? (
+                  <p className="form-helper text-[var(--danger)]">{formState.errors.paymentMethod.message}</p>
+                ) : null}
+              </div>
+              <div className="form-field">
+                <label className="form-label" htmlFor="transactionNotes">
+                  Catatan (Opsional)
+                </label>
+                <Input id="transactionNotes" placeholder="Catatan transaksi..." {...register("notes")} />
+              </div>
             </div>
           </div>
-
           {submitError ? (
             <div className="rounded-xl border border-[color:var(--danger)]/20 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
               {submitError}
@@ -626,7 +672,14 @@ export function TransactionForm({
 
           <div className="flex justify-end pt-4">
             <Button disabled={isSubmitting || (serviceFields.length === 0 && productFields.length === 0)} type="submit" className="w-full sm:w-auto px-8">
-              {isSubmitting ? "Menyimpan..." : "Simpan transaksi"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Memproses...
+                </>
+              ) : (
+                "Selesaikan Pembayaran"
+              )}
             </Button>
           </div>
         </form>
@@ -679,7 +732,14 @@ export function TransactionForm({
             form="transaction-form"
             type="submit"
           >
-            {isSubmitting ? "Menyimpan..." : "Simpan transaksi"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Memproses...
+              </>
+            ) : (
+              "Selesaikan Pembayaran"
+            )}
           </Button>
         </div>
       </div>

@@ -13,7 +13,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { RupiahFormatter } from "@/components/ui/rupiah-formatter";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SALARY_ADJUSTMENT_TYPE_OPTIONS } from "@/lib/constants/app";
 import type {
@@ -304,9 +304,14 @@ export function PayrollManager({
             <label className="form-label" htmlFor="payrollScope">
               Scope bisnis
             </label>
-            <Select defaultValue={filters.scope} id="payrollScope" name="scope">
-              <option value="selected">{selectedBusinessName}</option>
-              <option value="combined">Semua bisnis</option>
+            <Select defaultValue={filters.scope} name="scope">
+              <SelectTrigger id="payrollScope" className="w-full">
+                <SelectValue placeholder="Scope bisnis" />
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                <SelectItem value="selected">{selectedBusinessName}</SelectItem>
+                <SelectItem value="combined">Semua bisnis</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div className="form-field">
@@ -575,10 +580,9 @@ export function PayrollManager({
               </label>
               <Select
                 disabled={filters.scope === "selected"}
-                id="adjustmentBusiness"
                 value={form.businessId}
-                onChange={(event) => {
-                  const nextBusinessId = event.target.value;
+                onValueChange={(value) => {
+                  const nextBusinessId = value;
                   const defaultEmployee = employeesByBusiness.get(nextBusinessId)?.[0]?.id ?? "";
 
                   setForm((current) => ({
@@ -588,11 +592,16 @@ export function PayrollManager({
                   }));
                 }}
               >
-                {businesses.map((business) => (
-                  <option key={business.id} value={business.id}>
-                    {business.name}
-                  </option>
-                ))}
+                <SelectTrigger id="adjustmentBusiness" className="w-full">
+                  <SelectValue placeholder="Pilih bisnis..." />
+                </SelectTrigger>
+                <SelectContent className="z-50">
+                  {businesses.map((business) => (
+                    <SelectItem key={business.id} value={business.id}>
+                      {business.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -601,19 +610,22 @@ export function PayrollManager({
                   Karyawan
                 </label>
                 <Select
-                  id="adjustmentEmployee"
                   required
                   value={form.employeeId}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, employeeId: event.target.value }))
+                  onValueChange={(value) =>
+                    setForm((current) => ({ ...current, employeeId: value }))
                   }
                 >
-                  <option value="">Pilih karyawan</option>
-                  {(employeesByBusiness.get(form.businessId) ?? []).map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </option>
-                  ))}
+                  <SelectTrigger id="adjustmentEmployee" className="w-full">
+                    <SelectValue placeholder="Pilih karyawan..." />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    {(employeesByBusiness.get(form.businessId) ?? []).map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {employee.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div className="form-field">
@@ -621,20 +633,24 @@ export function PayrollManager({
                   Tipe
                 </label>
                 <Select
-                  id="adjustmentType"
                   value={form.type}
-                  onChange={(event) =>
+                  onValueChange={(value) =>
                     setForm((current) => ({
                       ...current,
-                      type: event.target.value === "deduction" ? "deduction" : "bonus",
+                      type: value === "deduction" ? "deduction" : "bonus",
                     }))
                   }
                 >
-                  {SALARY_ADJUSTMENT_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
+                  <SelectTrigger id="adjustmentType" className="w-full">
+                    <SelectValue placeholder="Tipe penyesuaian..." />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    {SALARY_ADJUSTMENT_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
